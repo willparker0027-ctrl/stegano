@@ -218,28 +218,37 @@
 	var downloadLink = qs('#download-link');
 	if(downloadLink){
 		downloadLink.addEventListener('click', function(e){
-			// Let the browser handle the download naturally
-			// The download attribute and proper headers should ensure it works
-			toast('Starting download...', 'info');
+			e.preventDefault(); // Prevent default link behavior
 			
-			// Fallback: if the download doesn't start within 2 seconds, try programmatic download
-			setTimeout(function(){
-				// Check if the link is still visible (download might have failed)
-				if(downloadLink.offsetParent !== null){
-					// Try programmatic download as fallback
-					var url = downloadLink.href;
-					if(url && url !== '#'){
+			var url = downloadLink.href;
+			if(url && url !== '#'){
+				toast('Starting download...', 'info');
+				
+				// Use fetch to download the file
+				fetch(url)
+					.then(response => {
+						if (!response.ok) {
+							throw new Error('Download failed');
+						}
+						return response.blob();
+					})
+					.then(blob => {
+						// Create download link
 						var link = document.createElement('a');
-						link.href = url;
-						link.download = '';
+						link.href = URL.createObjectURL(blob);
+						link.download = url.split('/').pop() || 'download';
 						link.style.display = 'none';
 						document.body.appendChild(link);
 						link.click();
 						document.body.removeChild(link);
-						toast('Download started (fallback method)', 'info');
-					}
-				}
-			}, 2000);
+						URL.revokeObjectURL(link.href);
+						toast('Download completed!', 'success');
+					})
+					.catch(error => {
+						console.error('Download error:', error);
+						toast('Download failed. Please try again.', 'danger');
+					});
+			}
 		});
 	}
 

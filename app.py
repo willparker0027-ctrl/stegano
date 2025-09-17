@@ -228,21 +228,21 @@ def download_file(name: str):
 		
 		print(f"Serving file: {path} (size: {file_size} bytes, type: {mime_type})")
 		
-		# Create response with proper headers to prevent 206 Partial Content
-		response = make_response()
-		response.headers['Content-Type'] = mime_type
-		response.headers['Content-Disposition'] = f'attachment; filename="{secure_name}"'
-		response.headers['Content-Length'] = str(file_size)
+		# Use send_file with proper configuration
+		response = send_file(
+			path,
+			as_attachment=True,
+			download_name=secure_name,
+			mimetype=mime_type
+		)
+		
+		# Add additional headers to prevent 206 Partial Content
 		response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
 		response.headers['Pragma'] = 'no-cache'
 		response.headers['Expires'] = '0'
 		response.headers['Accept-Ranges'] = 'none'  # Prevent range requests that cause 206
 		response.headers['X-Content-Type-Options'] = 'nosniff'
 		response.headers['X-Frame-Options'] = 'DENY'
-		
-		# Read and send file
-		with open(path, 'rb') as f:
-			response.data = f.read()
 		
 		print(f"Successfully prepared download for: {secure_name}")
 		return response
@@ -261,8 +261,23 @@ def test_download():
 		with open(test_file_path, 'w') as f:
 			f.write("This is a test file for download functionality.\n")
 			f.write("If you can download this file, the download system is working correctly.\n")
+			f.write(f"Generated at: {datetime.now().isoformat()}\n")
 	
 	return redirect(url_for('download_file', name='test.txt'))
+
+
+@app.get('/debug-download/<path:name>')
+def debug_download(name: str):
+	"""Debug endpoint to check download URL generation"""
+	secure_name = secure_filename(name)
+	download_url = url_for('download_file', name=name, _external=True)
+	
+	return jsonify({
+		'original_name': name,
+		'secure_name': secure_name,
+		'download_url': download_url,
+		'file_exists': os.path.exists(os.path.join(OUTPUT_DIR, secure_name))
+	})
 
 
 if __name__ == '__main__':
