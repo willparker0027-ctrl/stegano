@@ -203,7 +203,7 @@ def api_extract():
 	)
 
 
-# RENDER.COM SPECIFIC DOWNLOAD FIX
+# WINDOWS-COMPATIBLE DOWNLOAD FIX FOR RENDER.COM
 @app.get('/download/<path:name>')
 def download_file(name: str):
 	# Ensure output directory exists
@@ -222,20 +222,21 @@ def download_file(name: str):
 		return jsonify({'error': 'File not found'}), 404
 	
 	try:
-		# RENDER.COM FIX: Use send_file with specific configuration
-		response = send_file(
-			path,
-			as_attachment=True,
-			download_name=secure_name,
-			mimetype='application/octet-stream'
-		)
+		# Read file into memory
+		with open(path, 'rb') as f:
+			file_data = f.read()
 		
-		# Add headers specifically for Render.com
-		response.headers['X-Accel-Buffering'] = 'no'
+		print(f"FILE SIZE: {len(file_data)} bytes")
+		
+		# Create response with proper headers for Windows/Render
+		response = make_response(file_data)
+		response.headers['Content-Type'] = 'application/octet-stream'
+		response.headers['Content-Disposition'] = f'attachment; filename="{secure_name}"'
+		response.headers['Content-Length'] = str(len(file_data))
 		response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
 		response.headers['Pragma'] = 'no-cache'
 		response.headers['Expires'] = '0'
-		response.headers['X-Content-Type-Options'] = 'nosniff'
+		response.headers['Accept-Ranges'] = 'none'
 		
 		print(f"DOWNLOAD RESPONSE CREATED FOR: {secure_name}")
 		return response
