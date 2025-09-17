@@ -228,21 +228,12 @@ def download_file(name: str):
 		
 		print(f"Serving file: {path} (size: {file_size} bytes, type: {mime_type})")
 		
-		# Use send_file with proper configuration
+		# Simple send_file - let Flask handle everything
 		response = send_file(
 			path,
 			as_attachment=True,
-			download_name=secure_name,
-			mimetype=mime_type
+			download_name=secure_name
 		)
-		
-		# Add additional headers to prevent 206 Partial Content
-		response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
-		response.headers['Pragma'] = 'no-cache'
-		response.headers['Expires'] = '0'
-		response.headers['Accept-Ranges'] = 'none'  # Prevent range requests that cause 206
-		response.headers['X-Content-Type-Options'] = 'nosniff'
-		response.headers['X-Frame-Options'] = 'DENY'
 		
 		print(f"Successfully prepared download for: {secure_name}")
 		return response

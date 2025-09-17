@@ -214,41 +214,12 @@
 		});
 	}
 
-	// Download link handler
+	// Download link handler - SIMPLE SOLUTION
 	var downloadLink = qs('#download-link');
 	if(downloadLink){
 		downloadLink.addEventListener('click', function(e){
-			e.preventDefault(); // Prevent default link behavior
-			
-			var url = downloadLink.href;
-			if(url && url !== '#'){
-				toast('Starting download...', 'info');
-				
-				// Use fetch to download the file
-				fetch(url)
-					.then(response => {
-						if (!response.ok) {
-							throw new Error('Download failed');
-						}
-						return response.blob();
-					})
-					.then(blob => {
-						// Create download link
-						var link = document.createElement('a');
-						link.href = URL.createObjectURL(blob);
-						link.download = url.split('/').pop() || 'download';
-						link.style.display = 'none';
-						document.body.appendChild(link);
-						link.click();
-						document.body.removeChild(link);
-						URL.revokeObjectURL(link.href);
-						toast('Download completed!', 'success');
-					})
-					.catch(error => {
-						console.error('Download error:', error);
-						toast('Download failed. Please try again.', 'danger');
-					});
-			}
+			// Just let the browser handle it naturally - no preventDefault, no fetch
+			toast('Download starting...', 'info');
 		});
 	}
 
