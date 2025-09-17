@@ -4,7 +4,7 @@ import json
 import secrets
 import mimetypes
 from datetime import datetime
-from flask import Flask, render_template, request, send_file, redirect, url_for, jsonify, make_response
+from flask import Flask, render_template, request, send_file, redirect, url_for, jsonify, make_response, Response
 from werkzeug.utils import secure_filename
 
 from stegano.crypto import encrypt_with_aes, decrypt_with_aes, encrypt_with_rsa_public_key, decrypt_with_rsa_private_key
@@ -203,6 +203,7 @@ def api_extract():
 	)
 
 
+# BULLETPROOF DOWNLOAD ROUTE - COMPLETELY REWRITTEN
 @app.get('/download/<path:name>')
 def download_file(name: str):
 	# Ensure output directory exists
@@ -212,33 +213,39 @@ def download_file(name: str):
 	secure_name = secure_filename(name)
 	path = os.path.join(OUTPUT_DIR, secure_name)
 	
-	# Log the download attempt for debugging
-	print(f"Download request for: {name} -> {secure_name}")
+	print(f"DOWNLOAD REQUEST: {name} -> {secure_name}")
+	print(f"FILE PATH: {path}")
+	print(f"FILE EXISTS: {os.path.exists(path)}")
 	
 	if not os.path.exists(path):
-		print(f"File not found: {path}")
-		return jsonify({'error': 'File not found. It may have been deleted or never created.'}), 404
+		print(f"FILE NOT FOUND: {path}")
+		return jsonify({'error': 'File not found'}), 404
 	
 	try:
-		# Get file size and MIME type
-		file_size = os.path.getsize(path)
-		mime_type, _ = mimetypes.guess_type(path)
-		if mime_type is None:
-			mime_type = 'application/octet-stream'
+		# Read file into memory
+		with open(path, 'rb') as f:
+			file_data = f.read()
 		
-		print(f"Serving file: {path} (size: {file_size} bytes, type: {mime_type})")
+		print(f"FILE SIZE: {len(file_data)} bytes")
 		
-		# Simple send_file - let Flask handle everything
-		response = send_file(
-			path,
-			as_attachment=True,
-			download_name=secure_name
+		# Create response with raw file data
+		response = Response(
+			file_data,
+			mimetype='application/octet-stream',
+			headers={
+				'Content-Disposition': f'attachment; filename="{secure_name}"',
+				'Content-Length': str(len(file_data)),
+				'Cache-Control': 'no-cache, no-store, must-revalidate',
+				'Pragma': 'no-cache',
+				'Expires': '0'
+			}
 		)
 		
-		print(f"Successfully prepared download for: {secure_name}")
+		print(f"DOWNLOAD RESPONSE CREATED FOR: {secure_name}")
 		return response
+		
 	except Exception as e:
-		print(f"Download error for {secure_name}: {str(e)}")
+		print(f"DOWNLOAD ERROR: {str(e)}")
 		return jsonify({'error': f'Download failed: {str(e)}'}), 500
 
 
