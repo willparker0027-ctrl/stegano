@@ -75,7 +75,7 @@ def api_embed():
 	cover = request.files.get('cover')
 	secret_file = request.files.get('secret')
 	secret_text = request.form.get('secret_text', '')
-	algo = request.form.get('algo', 'aes')  # 'aes' or 'rsa'
+	algo = request.form.get('algo', 'aes')
 	password = request.form.get('password') or ''
 	rsa_public_pem = request.form.get('rsa_public_pem') or ''
 
@@ -87,9 +87,8 @@ def api_embed():
 	cover.save(cover_path)
 
 	if secret_file and secret_file.filename:
-		secret_filename = secure_filename(secret_file.filename)
 		secret_bytes = secret_file.read()
-		secret_meta = {'filename': secret_filename, 'type': 'file'}
+		secret_meta = {'filename': secret_file.filename, 'type': 'file'}
 	elif secret_text:
 		secret_bytes = secret_text.encode('utf-8')
 		secret_meta = {'filename': 'secret.txt', 'type': 'text'}
@@ -99,55 +98,52 @@ def api_embed():
 	# Encrypt
 	if algo == 'rsa' and rsa_public_pem.strip():
 		payload = encrypt_with_rsa_public_key(secret_bytes, rsa_public_pem)
-		enc_meta = {'scheme': 'rsa-hybrid'}
 	else:
 		if not password:
 			return jsonify({'error': 'Password is required for AES encryption'}), 400
 		payload = encrypt_with_aes(secret_bytes, password)
-		enc_meta = {'scheme': 'aes-gcm'}
 
 	head = {
 		'version': 1,
 		'ts': datetime.utcnow().isoformat() + 'Z',
 		'secret_meta': secret_meta,
-		'encryption': enc_meta,
+		'encryption': {'scheme': 'aes-gcm' if algo == 'aes' else 'rsa-hybrid'},
 	}
 	container = json.dumps(head).encode('utf-8') + b'\n\n' + payload
 
 	media_kind = infer_media_kind(cover_filename)
+	stego_bytes = None
 	stego_name = None
-	stego_path = None
 
 	try:
 		if media_kind == 'image':
 			stego_bytes = embed_in_image(cover_path, container)
 			stego_name = os.path.splitext(cover_filename)[0] + '_stego.png'
-			stego_path = os.path.join(OUTPUT_DIR, stego_name)
-			os.makedirs(OUTPUT_DIR, exist_ok=True)
-			with open(stego_path, 'wb') as f:
-				f.write(stego_bytes)
 		elif media_kind == 'audio':
 			stego_bytes = embed_in_wav(cover_path, container)
 			stego_name = os.path.splitext(cover_filename)[0] + '_stego.wav'
-			stego_path = os.path.join(OUTPUT_DIR, stego_name)
-			os.makedirs(OUTPUT_DIR, exist_ok=True)
-			with open(stego_path, 'wb') as f:
-				f.write(stego_bytes)
 		elif media_kind == 'video':
-			# Prefer AVI container to reduce lossy compression issues that break LSBs
+			# For video, save temporarily then read
 			stego_path = os.path.join(OUTPUT_DIR, os.path.splitext(cover_filename)[0] + '_stego.avi')
 			os.makedirs(OUTPUT_DIR, exist_ok=True)
 			embed_in_video(cover_path, container, stego_path)
 			stego_name = os.path.basename(stego_path)
+			with open(stego_path, 'rb') as f:
+				stego_bytes = f.read()
 		else:
 			return jsonify({'error': 'Unsupported cover file type'}), 400
 	except Exception as e:
 		return jsonify({'error': f'Embedding failed: {e}'}), 500
 
-	return jsonify({
-		'filename': stego_name,
-		'download_url': url_for('download_file', name=stego_name, _external=True)
-	})
+	# Return file directly as download
+	if stego_bytes:
+		return send_file(
+			io.BytesIO(stego_bytes),
+			as_attachment=True,
+			download_name=stego_name
+		)
+	else:
+		return jsonify({'error': 'Failed to generate stego file'}), 500
 
 @app.post('/api/extract')
 def api_extract():
