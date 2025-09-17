@@ -203,7 +203,7 @@ def api_extract():
 	)
 
 
-# BULLETPROOF DOWNLOAD ROUTE - COMPLETELY REWRITTEN
+# RENDER.COM SPECIFIC DOWNLOAD FIX
 @app.get('/download/<path:name>')
 def download_file(name: str):
 	# Ensure output directory exists
@@ -222,24 +222,20 @@ def download_file(name: str):
 		return jsonify({'error': 'File not found'}), 404
 	
 	try:
-		# Read file into memory
-		with open(path, 'rb') as f:
-			file_data = f.read()
-		
-		print(f"FILE SIZE: {len(file_data)} bytes")
-		
-		# Create response with raw file data
-		response = Response(
-			file_data,
-			mimetype='application/octet-stream',
-			headers={
-				'Content-Disposition': f'attachment; filename="{secure_name}"',
-				'Content-Length': str(len(file_data)),
-				'Cache-Control': 'no-cache, no-store, must-revalidate',
-				'Pragma': 'no-cache',
-				'Expires': '0'
-			}
+		# RENDER.COM FIX: Use send_file with specific configuration
+		response = send_file(
+			path,
+			as_attachment=True,
+			download_name=secure_name,
+			mimetype='application/octet-stream'
 		)
+		
+		# Add headers specifically for Render.com
+		response.headers['X-Accel-Buffering'] = 'no'
+		response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+		response.headers['Pragma'] = 'no-cache'
+		response.headers['Expires'] = '0'
+		response.headers['X-Content-Type-Options'] = 'nosniff'
 		
 		print(f"DOWNLOAD RESPONSE CREATED FOR: {secure_name}")
 		return response
@@ -247,6 +243,35 @@ def download_file(name: str):
 	except Exception as e:
 		print(f"DOWNLOAD ERROR: {str(e)}")
 		return jsonify({'error': f'Download failed: {str(e)}'}), 500
+
+
+# ALTERNATIVE DOWNLOAD ROUTE FOR RENDER.COM
+@app.get('/get-file/<path:name>')
+def get_file(name: str):
+	"""Alternative download route that works better on Render.com"""
+	os.makedirs(OUTPUT_DIR, exist_ok=True)
+	secure_name = secure_filename(name)
+	path = os.path.join(OUTPUT_DIR, secure_name)
+	
+	if not os.path.exists(path):
+		return jsonify({'error': 'File not found'}), 404
+	
+	try:
+		# Read file and return as base64 encoded data
+		with open(path, 'rb') as f:
+			file_data = f.read()
+		
+		import base64
+		encoded_data = base64.b64encode(file_data).decode('utf-8')
+		
+		return jsonify({
+			'filename': secure_name,
+			'data': encoded_data,
+			'size': len(file_data)
+		})
+		
+	except Exception as e:
+		return jsonify({'error': f'Failed to read file: {str(e)}'}), 500
 
 
 @app.get('/test-download')

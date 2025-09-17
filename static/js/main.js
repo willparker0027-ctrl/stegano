@@ -218,37 +218,70 @@
 		});
 	}
 
-	// BULLETPROOF DOWNLOAD BUTTON
+	// RENDER.COM SPECIFIC DOWNLOAD - MULTIPLE METHODS
 	var downloadBtn = qs('#download-btn');
 	if(downloadBtn){
-		downloadBtn.addEventListener('click', function(){
+		downloadBtn.addEventListener('click', async function(){
 			if(window.downloadUrl){
 				toast('Starting download...', 'info');
 				
-				// Method 1: Direct window.open
-				var newWindow = window.open(window.downloadUrl, '_blank');
-				
-				// Method 2: Fallback with fetch if window.open fails
-				setTimeout(function(){
-					if(!newWindow || newWindow.closed){
-						toast('Trying alternative download method...', 'info');
-						fetch(window.downloadUrl)
-							.then(response => response.blob())
-							.then(blob => {
-								var url = URL.createObjectURL(blob);
-								var a = document.createElement('a');
-								a.href = url;
-								a.download = window.downloadFilename || 'download';
-								a.click();
-								URL.revokeObjectURL(url);
-								toast('Download completed!', 'success');
-							})
-							.catch(err => {
-								console.error('Download failed:', err);
-								toast('Download failed. Please try again.', 'danger');
-							});
+				try {
+					// Method 1: Try direct download
+					var response = await fetch(window.downloadUrl);
+					if(response.ok) {
+						var blob = await response.blob();
+						var url = URL.createObjectURL(blob);
+						var a = document.createElement('a');
+						a.href = url;
+						a.download = window.downloadFilename || 'download';
+						a.click();
+						URL.revokeObjectURL(url);
+						toast('Download completed!', 'success');
+						return;
 					}
-				}, 1000);
+				} catch(e) {
+					console.log('Method 1 failed:', e);
+				}
+				
+				// Method 2: Try alternative endpoint
+				try {
+					toast('Trying alternative method...', 'info');
+					var altUrl = window.downloadUrl.replace('/download/', '/get-file/');
+					var response = await fetch(altUrl);
+					if(response.ok) {
+						var data = await response.json();
+						if(data.data) {
+							// Decode base64 data
+							var binaryString = atob(data.data);
+							var bytes = new Uint8Array(binaryString.length);
+							for(var i = 0; i < binaryString.length; i++) {
+								bytes[i] = binaryString.charCodeAt(i);
+							}
+							var blob = new Blob([bytes]);
+							var url = URL.createObjectURL(blob);
+							var a = document.createElement('a');
+							a.href = url;
+							a.download = data.filename || window.downloadFilename || 'download';
+							a.click();
+							URL.revokeObjectURL(url);
+							toast('Download completed!', 'success');
+							return;
+						}
+					}
+				} catch(e) {
+					console.log('Method 2 failed:', e);
+				}
+				
+				// Method 3: Fallback to window.open
+				try {
+					toast('Trying final method...', 'info');
+					window.open(window.downloadUrl, '_blank');
+					setTimeout(() => {
+						toast('If download didn\'t start, try right-click and "Save as"', 'warning');
+					}, 2000);
+				} catch(e) {
+					toast('All download methods failed. Please try right-click and "Save as"', 'danger');
+				}
 			} else {
 				toast('No file to download', 'warning');
 			}
