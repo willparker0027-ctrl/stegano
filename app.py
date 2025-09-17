@@ -203,10 +203,17 @@ def api_extract():
 
 @app.get('/download/<path:name>')
 def download_file(name: str):
+	# Ensure output directory exists
+	os.makedirs(OUTPUT_DIR, exist_ok=True)
+	
 	path = os.path.join(OUTPUT_DIR, secure_filename(name))
 	if not os.path.exists(path):
-		return 'Not found', 404
-	return send_file(path, as_attachment=True)
+		return jsonify({'error': 'File not found. It may have been deleted or never created.'}), 404
+	
+	try:
+		return send_file(path, as_attachment=True, download_name=name)
+	except Exception as e:
+		return jsonify({'error': f'Download failed: {str(e)}'}), 500
 
 
 if __name__ == '__main__':
