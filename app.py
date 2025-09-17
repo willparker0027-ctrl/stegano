@@ -211,28 +211,22 @@ def download_file(name: str):
 
 if __name__ == '__main__':
 	port = int(os.environ.get('PORT', '5000'))
-	ssl_context = None
 	
-	# Check if SSL certificates exist
-	if os.path.exists('certs/cert.pem') and os.path.exists('certs/key.pem'):
-		ssl_context = ('certs/cert.pem', 'certs/key.pem')
-		print("🔒 Starting with HTTPS...")
-		print(f"🌐 Access at: https://localhost:{port}")
-		print(f"🌐 Network access: https://192.168.1.37:{port}")
-		print("")
-		print("📝 IMPORTANT: Your browser will show a security warning because we're using")
-		print("   self-signed certificates. This is normal for development.")
-		print("   Click 'Advanced' and 'Proceed to localhost' to access the app.")
-		print("")
+	# Check if running on Render (production) or locally
+	if os.environ.get('RENDER'):
+		# Running on Render - use HTTP only, Render handles HTTPS
+		print("🚀 Starting on Render...")
+		print(f"🌐 Running on port: {port}")
+		app.run(host='0.0.0.0', port=port, debug=False)
 	else:
-		print("⚠️  SSL certificates not found, starting with HTTP...")
-		print(f"🌐 Access at: http://localhost:{port}")
-	
-	try:
-		app.run(host='0.0.0.0', port=port, debug=True, ssl_context=ssl_context)
-	except OSError as e:
-		if "Address already in use" in str(e):
-			print(f"❌ Port {port} is already in use!")
-			print("   Please run 'python start_app.py' instead for automatic port management.")
+		# Running locally - can use HTTPS if certificates exist
+		ssl_context = None
+		if os.path.exists('certs/cert.pem') and os.path.exists('certs/key.pem'):
+			ssl_context = ('certs/cert.pem', 'certs/key.pem')
+			print("🔒 Starting with HTTPS...")
+			print(f"🌐 Access at: https://localhost:{port}")
 		else:
-			raise
+			print("⚠️  SSL certificates not found, starting with HTTP...")
+			print(f"🌐 Access at: http://localhost:{port}")
+		
+		app.run(host='0.0.0.0', port=port, debug=True, ssl_context=ssl_context)
