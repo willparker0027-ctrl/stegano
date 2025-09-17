@@ -1,0 +1,760 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<title>Stegano — Secure Data Hiding</title>
+		<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+		<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+		<link href="/static/css/styles.css" rel="stylesheet">
+		<link href="https://cdn.jsdelivr.net/npm/animate.css@4.1.1/animate.min.css" rel="stylesheet">
+		<style>
+			:root {
+				--card-bg: white;
+				--primary-color: #4f46e5;
+				--secondary-color: #7c3aed;
+				--text-color: #1f2937;
+				--text-color-dark: #e5e7eb;
+				--muted-color: #6b7280;
+				--border-color: #e5e7eb;
+				--input-bg: #f9fafb;
+				--shadow-color: rgba(0,0,0,0.1);
+				--highlight-color: rgba(79, 70, 229, 0.1);
+				--highlight-color-dark: rgba(99, 102, 241, 0.2);
+			}
+			
+			body {
+				background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+				min-height: 100vh;
+				font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+				perspective: 1000px;
+			}
+			
+			.main-container {
+				min-height: 100vh;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				padding: 20px;
+				perspective: 1000px;
+			}
+			
+			.login-wrapper {
+				background: var(--card-bg);
+				border-radius: 20px;
+				box-shadow: 
+					0 20px 40px var(--shadow-color),
+					0 0 0 1px rgba(255,255,255,0.1),
+					0 0 0 1px rgba(0,0,0,0.05);
+				overflow: hidden;
+				display: flex;
+				max-width: 1000px;
+				width: 100%;
+				min-height: 600px;
+				transform-style: preserve-3d;
+				transition: transform 0.6s ease, box-shadow 0.6s ease;
+				animation: cardFloat 6s ease-in-out infinite alternate;
+			}
+			
+			@keyframes cardFloat {
+				0% {
+					transform: translateZ(0) rotateX(0deg) rotateY(0deg);
+					box-shadow: 0 20px 40px var(--shadow-color);
+				}
+				50% {
+					transform: translateZ(20px) rotateX(2deg) rotateY(-2deg);
+					box-shadow: 0 30px 50px var(--shadow-color);
+				}
+				100% {
+					transform: translateZ(10px) rotateX(-2deg) rotateY(2deg);
+					box-shadow: 0 25px 45px var(--shadow-color);
+				}
+			}
+			
+			.left-section {
+				flex: 1;
+				padding: 60px 50px;
+				background: var(--card-bg);
+				transform-style: preserve-3d;
+				position: relative;
+				z-index: 1;
+			}
+			
+			.right-section {
+				flex: 1;
+				background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+				position: relative;
+				overflow: hidden;
+				transform-style: preserve-3d;
+				z-index: 0;
+			}
+			
+			.right-section::before {
+				content: '';
+				position: absolute;
+				top: -50%;
+				left: -50%;
+				width: 200%;
+				height: 200%;
+				background: radial-gradient(circle, rgba(255,255,255,0.2) 0%, transparent 60%);
+				transform: translateZ(20px);
+				animation: lightShift 10s ease-in-out infinite alternate;
+			}
+			
+			@keyframes lightShift {
+				0% {
+					transform: translateZ(20px) translateX(0%) translateY(0%);
+					opacity: 0.5;
+				}
+				100% {
+					transform: translateZ(20px) translateX(-10%) translateY(-10%);
+					opacity: 0.7;
+				}
+			}
+			
+			.back-arrow {
+				position: absolute;
+				top: 30px;
+				left: 30px;
+				color: #6b7280;
+				font-size: 20px;
+				text-decoration: none;
+			}
+			
+			.signin-link {
+				position: absolute;
+				top: 30px;
+				right: 30px;
+				color: #4f46e5;
+				text-decoration: none;
+				font-weight: 500;
+			}
+			
+			.form-title {
+				font-size: 2.5rem;
+				font-weight: 700;
+				color: var(--text-color);
+				margin-bottom: 10px;
+				transform: translateZ(30px);
+				transition: transform 0.3s ease;
+				text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+				animation: titlePulse 3s ease-in-out infinite alternate;
+			}
+			
+			@keyframes titlePulse {
+				0% {
+					transform: translateZ(30px) scale(1);
+					text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+				}
+				100% {
+					transform: translateZ(40px) scale(1.02);
+					text-shadow: 3px 3px 6px rgba(0,0,0,0.15);
+				}
+			}
+			
+			.form-subtitle {
+				color: var(--muted-color);
+				margin-bottom: 40px;
+				font-size: 1.1rem;
+				transform: translateZ(20px);
+			}
+			
+			.input-group-modern {
+				position: relative;
+				margin-bottom: 25px;
+				transform-style: preserve-3d;
+				transform: translateZ(15px);
+				transition: transform 0.3s ease;
+			}
+			
+			.input-group-modern:hover {
+				transform: translateZ(25px);
+			}
+			
+			.input-modern {
+				width: 100%;
+				padding: 15px 20px 15px 50px;
+				border: 2px solid var(--border-color);
+				border-radius: 12px;
+				font-size: 16px;
+				transition: all 0.3s ease;
+				background: var(--input-bg);
+				box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+				transform: translateZ(0);
+			}
+			
+			.input-modern:focus {
+				outline: none;
+				border-color: var(--primary-color);
+				background: white;
+				box-shadow: 
+					0 0 0 3px var(--highlight-color),
+					0 8px 16px rgba(0,0,0,0.1);
+				transform: translateZ(5px);
+			}
+			
+			.input-icon {
+				position: absolute;
+				left: 18px;
+				top: 50%;
+				transform: translateY(-50%) translateZ(10px);
+				color: #9ca3af;
+				font-size: 18px;
+				transition: all 0.3s ease;
+			}
+			
+			.input-group-modern:hover .input-icon {
+				color: var(--primary-color);
+				transform: translateY(-50%) translateZ(15px) scale(1.1);
+			}
+			
+			.input-valid {
+				position: absolute;
+				right: 18px;
+				top: 50%;
+				transform: translateY(-50%);
+				color: #10b981;
+				font-size: 18px;
+			}
+			
+			.password-toggle {
+				position: absolute;
+				right: 18px;
+				top: 50%;
+				transform: translateY(-50%);
+				color: #9ca3af;
+				cursor: pointer;
+				font-size: 18px;
+			}
+			
+			.password-requirements {
+				margin-top: 10px;
+				font-size: 14px;
+			}
+			
+			.requirement {
+				display: flex;
+				align-items: center;
+				margin-bottom: 5px;
+				color: #6b7280;
+			}
+			
+			.requirement.valid {
+				color: #10b981;
+			}
+			
+			.requirement i {
+				margin-right: 8px;
+				font-size: 12px;
+			}
+			
+			.btn-signup {
+				width: 100%;
+				padding: 15px;
+				background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+				border: none;
+				border-radius: 12px;
+				color: white;
+				font-size: 16px;
+				font-weight: 600;
+				cursor: pointer;
+				transition: all 0.3s ease;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				gap: 10px;
+				transform: translateZ(20px);
+				box-shadow: 0 8px 16px rgba(79, 70, 229, 0.2);
+				position: relative;
+				overflow: hidden;
+			}
+			
+			.btn-signup::before {
+				content: '';
+				position: absolute;
+				top: -50%;
+				left: -50%;
+				width: 200%;
+				height: 200%;
+				background: radial-gradient(circle, rgba(255,255,255,0.3) 0%, transparent 70%);
+				transform: translateZ(5px);
+				opacity: 0;
+				transition: opacity 0.3s ease;
+			}
+			
+			.btn-signup:hover {
+				transform: translateZ(30px) translateY(-2px);
+				box-shadow: 0 15px 30px rgba(79, 70, 229, 0.4);
+			}
+			
+			.btn-signup:hover::before {
+				opacity: 1;
+			}
+			
+			.divider {
+				text-align: center;
+				margin: 30px 0;
+				color: #9ca3af;
+				position: relative;
+			}
+			
+			.divider::before {
+				content: '';
+				position: absolute;
+				top: 50%;
+				left: 0;
+				right: 0;
+				height: 1px;
+				background: #e5e7eb;
+			}
+			
+			.divider span {
+				background: white;
+				padding: 0 20px;
+			}
+			
+			.social-buttons {
+				display: flex;
+				gap: 15px;
+				justify-content: center;
+			}
+			
+			.btn-social {
+				width: 50px;
+				height: 50px;
+				border-radius: 50%;
+				border: 2px solid #e5e7eb;
+				background: white;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				cursor: pointer;
+				transition: all 0.3s ease;
+				font-size: 20px;
+			}
+			
+			.btn-social:hover {
+				border-color: #4f46e5;
+				transform: translateY(-2px);
+			}
+			
+			.btn-facebook {
+				color: #1877f2;
+			}
+			
+			.btn-google {
+				color: #db4437;
+			}
+			
+			.language-selector {
+				position: absolute;
+				bottom: 30px;
+				left: 30px;
+				display: flex;
+				align-items: center;
+				gap: 8px;
+				color: #6b7280;
+				font-size: 14px;
+			}
+			
+			.right-content {
+				padding: 60px 40px;
+				height: 100%;
+				display: flex;
+				flex-direction: column;
+				justify-content: space-between;
+				position: relative;
+			}
+			
+			.floating-card {
+				background: rgba(255, 255, 255, 0.1);
+				backdrop-filter: blur(10px);
+				border-radius: 16px;
+				padding: 25px;
+				margin-bottom: 20px;
+				border: 1px solid rgba(255, 255, 255, 0.2);
+			}
+			
+			.card-title {
+				color: white;
+				font-size: 1.2rem;
+				font-weight: 600;
+				margin-bottom: 15px;
+			}
+			
+			.card-number {
+				color: white;
+				font-size: 2rem;
+				font-weight: 700;
+				margin-bottom: 10px;
+			}
+			
+			.card-description {
+				color: rgba(255, 255, 255, 0.8);
+				font-size: 0.9rem;
+				line-height: 1.5;
+			}
+			
+			.floating-icons {
+				position: absolute;
+				top: 20px;
+				right: 20px;
+				display: flex;
+				gap: 10px;
+			}
+			
+			.floating-icon {
+				width: 40px;
+				height: 40px;
+				border-radius: 50%;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				font-size: 18px;
+				color: white;
+			}
+			
+			.icon-instagram {
+				background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);
+			}
+			
+			.icon-tiktok {
+				background: #000;
+			}
+			
+			.wave-shape {
+				position: absolute;
+				bottom: 0;
+				left: 0;
+				right: 0;
+				height: 100px;
+				background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 120'%3E%3Cpath d='M0,0V46.29c47.79,22.2,103.59,32.17,158,28,70.36-5.37,136.33-33.31,206.8-37.5C438.64,32.43,512.34,53.67,583,72.05c69.27,18,138.3,24.88,209.4,13.08,36.15-6,69.85-17.84,104.45-29.34C989.49,25,1113-14.29,1200,52.47V0Z' fill='rgba(255,255,255,0.1)'/%3E%3C/svg%3E") repeat-x;
+				background-size: 1200px 120px;
+			}
+			
+			.form-toggle {
+				display: none;
+			}
+			
+			@media (max-width: 768px) {
+				.login-wrapper {
+					flex-direction: column;
+					margin: 20px;
+				}
+				
+				.right-section {
+					display: none;
+				}
+				
+				.left-section {
+					padding: 40px 30px;
+				}
+			}
+		</style>
+	</head>
+	<body>
+		<div class="main-container">
+			<div class="login-wrapper">
+				<div class="left-section">
+					<a href="#" class="back-arrow">
+						<i class="fas fa-arrow-left"></i>
+					</a>
+					<a href="#" class="signin-link" onclick="showLoginForm()">Already member? Sign in</a>
+					
+					<div class="form-container">
+						<h1 class="form-title">Sign Up</h1>
+						<p class="form-subtitle">Secure Your Communications with Stegano</p>
+						
+						<!-- Sign Up Form -->
+						<form class="signup-form" id="signupForm">
+							<div class="input-group-modern">
+								<i class="fas fa-user input-icon"></i>
+								<input type="text" class="input-modern" id="signupName" placeholder="Full Name" required>
+								<i class="fas fa-check input-valid" style="display: none;"></i>
+							</div>
+							
+							<div class="input-group-modern">
+								<i class="fas fa-envelope input-icon"></i>
+								<input type="email" class="input-modern" id="signupEmail" placeholder="Email Address" required>
+								<i class="fas fa-check input-valid" style="display: none;"></i>
+							</div>
+							
+							<div class="input-group-modern">
+								<i class="fas fa-lock input-icon"></i>
+								<input type="password" class="input-modern" id="signupPassword" placeholder="Password" required>
+								<i class="fas fa-eye-slash password-toggle" onclick="togglePassword('signupPassword')"></i>
+								<div class="password-requirements">
+									<div class="requirement" id="req-length">
+										<i class="fas fa-circle"></i>
+										<span>Least 8 characters</span>
+									</div>
+									<div class="requirement" id="req-number">
+										<i class="fas fa-circle"></i>
+										<span>Least one number (0-9) or a symbol</span>
+									</div>
+									<div class="requirement" id="req-case">
+										<i class="fas fa-circle"></i>
+										<span>Lowercase (a-z) and uppercase (A-Z)</span>
+									</div>
+								</div>
+							</div>
+							
+							<div class="input-group-modern">
+								<i class="fas fa-lock input-icon"></i>
+								<input type="password" class="input-modern" id="confirmPassword" placeholder="Re-Type Password" required>
+								<i class="fas fa-check input-valid" style="display: none;"></i>
+							</div>
+							
+							<button type="button" class="btn-signup" onclick="handleSignup(event)">
+								<span>Sign Up</span>
+								<i class="fas fa-arrow-right"></i>
+							</button>
+						</form>
+						
+						<!-- Login Form (Hidden by default) -->
+						<form class="login-form d-none" id="loginForm">
+							<div class="input-group-modern">
+								<i class="fas fa-user input-icon"></i>
+								<input type="text" class="input-modern" id="loginUsername" placeholder="Username" required>
+								<i class="fas fa-check input-valid" style="display: none;"></i>
+							</div>
+							
+							<div class="input-group-modern">
+								<i class="fas fa-lock input-icon"></i>
+								<input type="password" class="input-modern" id="loginPassword" placeholder="Password" required>
+								<i class="fas fa-eye-slash password-toggle" onclick="togglePassword('loginPassword')"></i>
+							</div>
+							
+							<button type="button" class="btn-signup" onclick="handleLogin(event)">
+								<span>Sign In</span>
+								<i class="fas fa-arrow-right"></i>
+							</button>
+						</form>
+						
+						<div class="divider">
+							<span>Or</span>
+						</div>
+						
+						<div class="social-buttons">
+							<button class="btn-social btn-facebook">
+								<i class="fab fa-facebook-f"></i>
+							</button>
+							<button class="btn-social btn-google">
+								<i class="fab fa-google"></i>
+							</button>
+						</div>
+					</div>
+					
+					<div class="language-selector">
+						<i class="fas fa-flag"></i>
+						<span>ENG</span>
+						<i class="fas fa-chevron-down"></i>
+					</div>
+				</div>
+				
+				<div class="right-section">
+					<div class="right-content">
+						<div class="floating-card">
+							<div class="floating-icons">
+								<div class="floating-icon icon-instagram">
+									<i class="fab fa-instagram"></i>
+								</div>
+								<div class="floating-icon icon-tiktok">
+									<i class="fab fa-tiktok"></i>
+								</div>
+							</div>
+							<div class="card-title">Inbox</div>
+							<div class="card-number">176,18</div>
+							<div class="card-description">
+								Secure messages processed with advanced steganography and encryption
+							</div>
+						</div>
+						
+						<div class="floating-card">
+							<div class="card-title">
+								<i class="fas fa-key" style="color: #f59e0b; margin-right: 10px;"></i>
+								Your data, your rules
+							</div>
+							<div class="card-description">
+								Your data belongs to you, and our encryption ensures that your communications remain private and secure.
+							</div>
+						</div>
+						
+						<div class="wave-shape"></div>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+		<script>
+			// Form toggle functionality
+			function showLoginForm() {
+				document.getElementById('signupForm').classList.add('d-none');
+				document.getElementById('loginForm').classList.remove('d-none');
+				document.querySelector('.form-title').textContent = 'Sign In';
+				document.querySelector('.form-subtitle').textContent = 'Welcome back to Stegano';
+				document.querySelector('.signin-link').textContent = 'New user? Sign up';
+				document.querySelector('.signin-link').setAttribute('onclick', 'showSignupForm()');
+			}
+			
+			function showSignupForm() {
+				document.getElementById('loginForm').classList.add('d-none');
+				document.getElementById('signupForm').classList.remove('d-none');
+				document.querySelector('.form-title').textContent = 'Sign Up';
+				document.querySelector('.form-subtitle').textContent = 'Secure Your Communications with Stegano';
+				document.querySelector('.signin-link').textContent = 'Already member? Sign in';
+				document.querySelector('.signin-link').setAttribute('onclick', 'showLoginForm()');
+			}
+			
+			// Password toggle functionality
+			function togglePassword(inputId) {
+				const input = document.getElementById(inputId);
+				const icon = input.nextElementSibling;
+				
+				if (input.type === 'password') {
+					input.type = 'text';
+					icon.classList.remove('fa-eye-slash');
+					icon.classList.add('fa-eye');
+				} else {
+					input.type = 'password';
+					icon.classList.remove('fa-eye');
+					icon.classList.add('fa-eye-slash');
+				}
+			}
+			
+			// Password validation
+			function validatePassword(password) {
+				const requirements = {
+					length: password.length >= 8,
+					number: /[0-9!@#$%^&*(),.?":{}|<>]/.test(password),
+					case: /[a-z]/.test(password) && /[A-Z]/.test(password)
+				};
+				
+				// Update requirement indicators
+				document.getElementById('req-length').classList.toggle('valid', requirements.length);
+				document.getElementById('req-number').classList.toggle('valid', requirements.number);
+				document.getElementById('req-case').classList.toggle('valid', requirements.case);
+				
+				return requirements.length && requirements.number && requirements.case;
+			}
+			
+			// Input validation with visual feedback
+			function setupInputValidation() {
+				const inputs = document.querySelectorAll('.input-modern');
+				inputs.forEach(input => {
+					input.addEventListener('input', function() {
+						const validIcon = this.parentElement.querySelector('.input-valid');
+						if (this.value.trim() !== '') {
+							validIcon.style.display = 'block';
+						} else {
+							validIcon.style.display = 'none';
+						}
+					});
+				});
+				
+				// Special handling for password
+				const passwordInput = document.getElementById('signupPassword');
+				if (passwordInput) {
+					passwordInput.addEventListener('input', function() {
+						validatePassword(this.value);
+					});
+				}
+			}
+			
+			// Sign up functionality
+			function handleSignup(event) {
+				event.preventDefault();
+				
+				const name = document.getElementById('signupName').value;
+				const email = document.getElementById('signupEmail').value;
+				const password = document.getElementById('signupPassword').value;
+				const confirmPassword = document.getElementById('confirmPassword').value;
+				
+				if (!name || !email || !password || !confirmPassword) {
+					alert('Please fill in all fields');
+					return;
+				}
+				
+				if (password !== confirmPassword) {
+					alert('Passwords do not match');
+					return;
+				}
+				
+				if (!validatePassword(password)) {
+					alert('Password does not meet requirements');
+					return;
+				}
+				
+				// Simulate account creation
+				const button = event.target;
+				button.querySelector('span').textContent = 'Creating Account...';
+				button.disabled = true;
+				
+				setTimeout(() => {
+					// Store account data
+					localStorage.setItem('isLoggedIn', 'true');
+					localStorage.setItem('userName', name);
+					localStorage.setItem('userEmail', email);
+					localStorage.setItem('userRole', 'Security Analyst');
+					localStorage.setItem('accountCreated', 'true');
+					
+					// Redirect to main app page
+					window.location.href = '/app';
+				}, 2000);
+			}
+			
+			// Login functionality
+			function handleLogin(event) {
+				event.preventDefault();
+				
+				const username = document.getElementById('loginUsername').value;
+				const password = document.getElementById('loginPassword').value;
+				
+				if (!username || !password) {
+					alert('Please enter both username and password');
+					return;
+				}
+				
+				// Simulate login process
+				const button = event.target;
+				button.querySelector('span').textContent = 'Signing in...';
+				button.disabled = true;
+				
+				setTimeout(() => {
+					// Store login data
+					localStorage.setItem('isLoggedIn', 'true');
+					localStorage.setItem('userName', username);
+					localStorage.setItem('userRole', 'Security Analyst');
+					localStorage.setItem('userEmail', username + '@stegano.com');
+					
+					// Redirect to main app page
+					window.location.href = '/app';
+				}, 1500);
+			}
+			
+			// Social login handlers
+			function handleFacebookLogin() {
+				alert('Facebook login would be implemented here');
+			}
+			
+			function handleGoogleLogin() {
+				alert('Google login would be implemented here');
+			}
+			
+			// Check if already logged in
+			document.addEventListener('DOMContentLoaded', function() {
+				if (localStorage.getItem('isLoggedIn') === 'true') {
+					window.location.href = '/app';
+				}
+				
+				// Setup input validation
+				setupInputValidation();
+				
+				// Add social button event listeners
+				document.querySelector('.btn-facebook').addEventListener('click', handleFacebookLogin);
+				document.querySelector('.btn-google').addEventListener('click', handleGoogleLogin);
+			});
+		</script>
+	</body>
+</html>
