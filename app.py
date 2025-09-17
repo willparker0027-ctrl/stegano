@@ -208,14 +208,61 @@ def download_file(name: str):
 	# Ensure output directory exists
 	os.makedirs(OUTPUT_DIR, exist_ok=True)
 	
-	path = os.path.join(OUTPUT_DIR, secure_filename(name))
+	# Secure the filename to prevent directory traversal
+	secure_name = secure_filename(name)
+	path = os.path.join(OUTPUT_DIR, secure_name)
+	
+	# Log the download attempt for debugging
+	print(f"Download request for: {name} -> {secure_name}")
+	
 	if not os.path.exists(path):
+		print(f"File not found: {path}")
 		return jsonify({'error': 'File not found. It may have been deleted or never created.'}), 404
 	
 	try:
-		return send_file(path, as_attachment=True, download_name=name)
+		# Get file size and MIME type
+		file_size = os.path.getsize(path)
+		mime_type, _ = mimetypes.guess_type(path)
+		if mime_type is None:
+			mime_type = 'application/octet-stream'
+		
+		print(f"Serving file: {path} (size: {file_size} bytes, type: {mime_type})")
+		
+		# Create response with proper headers to prevent 206 Partial Content
+		response = make_response()
+		response.headers['Content-Type'] = mime_type
+		response.headers['Content-Disposition'] = f'attachment; filename="{secure_name}"'
+		response.headers['Content-Length'] = str(file_size)
+		response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+		response.headers['Pragma'] = 'no-cache'
+		response.headers['Expires'] = '0'
+		response.headers['Accept-Ranges'] = 'none'  # Prevent range requests that cause 206
+		response.headers['X-Content-Type-Options'] = 'nosniff'
+		response.headers['X-Frame-Options'] = 'DENY'
+		
+		# Read and send file
+		with open(path, 'rb') as f:
+			response.data = f.read()
+		
+		print(f"Successfully prepared download for: {secure_name}")
+		return response
 	except Exception as e:
+		print(f"Download error for {secure_name}: {str(e)}")
 		return jsonify({'error': f'Download failed: {str(e)}'}), 500
+
+
+@app.get('/test-download')
+def test_download():
+	"""Test endpoint to verify download functionality"""
+	test_file_path = os.path.join(OUTPUT_DIR, 'test.txt')
+	
+	# Create a test file if it doesn't exist
+	if not os.path.exists(test_file_path):
+		with open(test_file_path, 'w') as f:
+			f.write("This is a test file for download functionality.\n")
+			f.write("If you can download this file, the download system is working correctly.\n")
+	
+	return redirect(url_for('download_file', name='test.txt'))
 
 
 if __name__ == '__main__':

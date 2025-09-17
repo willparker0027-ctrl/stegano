@@ -214,6 +214,35 @@
 		});
 	}
 
+	// Download link handler
+	var downloadLink = qs('#download-link');
+	if(downloadLink){
+		downloadLink.addEventListener('click', function(e){
+			// Let the browser handle the download naturally
+			// The download attribute and proper headers should ensure it works
+			toast('Starting download...', 'info');
+			
+			// Fallback: if the download doesn't start within 2 seconds, try programmatic download
+			setTimeout(function(){
+				// Check if the link is still visible (download might have failed)
+				if(downloadLink.offsetParent !== null){
+					// Try programmatic download as fallback
+					var url = downloadLink.href;
+					if(url && url !== '#'){
+						var link = document.createElement('a');
+						link.href = url;
+						link.download = '';
+						link.style.display = 'none';
+						document.body.appendChild(link);
+						link.click();
+						document.body.removeChild(link);
+						toast('Download started (fallback method)', 'info');
+					}
+				}
+			}, 2000);
+		});
+	}
+
 	// Extract
 	var extractForm = qs('#extract-form');
 	if(extractForm){
