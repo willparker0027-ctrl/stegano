@@ -116,7 +116,6 @@ def api_embed():
 
 	media_kind = infer_media_kind(cover_filename)
 	stego_name = None
-	stego_bytes = None
 	stego_path = None
 
 	try:
@@ -124,17 +123,20 @@ def api_embed():
 			stego_bytes = embed_in_image(cover_path, container)
 			stego_name = os.path.splitext(cover_filename)[0] + '_stego.png'
 			stego_path = os.path.join(OUTPUT_DIR, stego_name)
+			os.makedirs(OUTPUT_DIR, exist_ok=True)
 			with open(stego_path, 'wb') as f:
 				f.write(stego_bytes)
 		elif media_kind == 'audio':
 			stego_bytes = embed_in_wav(cover_path, container)
 			stego_name = os.path.splitext(cover_filename)[0] + '_stego.wav'
 			stego_path = os.path.join(OUTPUT_DIR, stego_name)
+			os.makedirs(OUTPUT_DIR, exist_ok=True)
 			with open(stego_path, 'wb') as f:
 				f.write(stego_bytes)
 		elif media_kind == 'video':
 			# Prefer AVI container to reduce lossy compression issues that break LSBs
 			stego_path = os.path.join(OUTPUT_DIR, os.path.splitext(cover_filename)[0] + '_stego.avi')
+			os.makedirs(OUTPUT_DIR, exist_ok=True)
 			embed_in_video(cover_path, container, stego_path)
 			stego_name = os.path.basename(stego_path)
 		else:
@@ -146,7 +148,6 @@ def api_embed():
 		'filename': stego_name,
 		'download_url': url_for('download_file', name=stego_name, _external=True)
 	})
-
 
 @app.post('/api/extract')
 def api_extract():
